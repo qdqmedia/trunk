@@ -29,7 +29,6 @@ class PGQueue(object):
     def put(self, name, message):
         with self.trunk.cursor() as cursor:
             cursor.execute("INSERT INTO trunk_queue (name, message) VALUES (%s, %s)", (name, message))
-        self.trunk.notify(name)
 
     def empty(self, name):
         return 0 == self.qsize(name)
