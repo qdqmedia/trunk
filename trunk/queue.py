@@ -13,11 +13,19 @@ class PGQueue(object):
 
     def create(self, name):
         self.trunk.listen(name)
+        # This forces db trigger to resend notifications about pending messages.
+        with self.trunk.cursor() as cursor:
+            cursor.execute("UPDATE trunk_queue SET locked_at = NULL WHERE name = %s AND locked_at IS NULL", (name, ))
 
     def get(self, name, block=True, timeout=None):
         channel, payload = self.trunk.get(name, block=block, timeout=timeout)
         with self.trunk.cursor() as cursor:
-            cursor.execute("SELECT id, message FROM pop_lock(%s)", (name,))
+            cursor.execute('UPDATE trunk_queue SET locked_at = (CURRENT_TIMESTAMP) '
+                           'WHERE id = %s AND name = %s AND locked_at is NULL', (payload, name))
+            row_count = cursor.rowcount
+            if not row_count:
+                raise Empty()
+            cursor.execute("SELECT id, message FROM trunk_queue WHERE id = %s", (payload, ))
             row = cursor.fetchone()
             if row is None:
                 raise Empty()
