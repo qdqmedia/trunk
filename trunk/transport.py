@@ -20,14 +20,19 @@ class Channel(virtual.Channel):
         self.queue.create(queue)
 
     def _get(self, queue, timeout=None):
-        _, message = self.queue.get_nowait(queue)
-        return loads(message)
+        id, message = self.queue.get_nowait(queue)
+        payload = loads(message)
+        payload['message_id'] = id
+        return payload
 
     def _put(self, queue, message, **kwargs):
         self.queue.put(queue, dumps(message))
 
     def _purge(self, queue):
         return self.queue.purge(queue)
+
+    def _restore(self, message):
+        return self.queue.restore(message)
 
     def close(self):
         super(Channel, self).close()

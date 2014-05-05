@@ -53,5 +53,10 @@ class PGQueue(object):
             cursor.execute("DELETE FROM trunk_queue WHERE name = %s", (name,))
         return size
 
+    def restore(self, message):
+        message_id = message._raw['message_id']
+        with self.trunk.cursor() as cursor:
+            cursor.execute('UPDATE trunk_queue SET locked_at = NULL WHERE id = %s', (message_id, ))
+
     def close(self):
         self.trunk.close()
